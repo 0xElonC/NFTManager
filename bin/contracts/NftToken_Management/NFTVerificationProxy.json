@@ -1,0 +1,564 @@
+{
+    "contractName": "NFTVerificationProxy",
+    "abi": [
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "logic",
+                    "type": "address"
+                },
+                {
+                    "internalType": "address",
+                    "name": "admin",
+                    "type": "address"
+                },
+                {
+                    "internalType": "bytes",
+                    "name": "data",
+                    "type": "bytes"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "target",
+                    "type": "address"
+                }
+            ],
+            "name": "AddressEmptyCode",
+            "type": "error"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "admin",
+                    "type": "address"
+                }
+            ],
+            "name": "ERC1967InvalidAdmin",
+            "type": "error"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "implementation",
+                    "type": "address"
+                }
+            ],
+            "name": "ERC1967InvalidImplementation",
+            "type": "error"
+        },
+        {
+            "inputs": [],
+            "name": "ERC1967NonPayable",
+            "type": "error"
+        },
+        {
+            "inputs": [],
+            "name": "FailedCall",
+            "type": "error"
+        },
+        {
+            "inputs": [],
+            "name": "ProxyDeniedAdminAccess",
+            "type": "error"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "previousAdmin",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "address",
+                    "name": "newAdmin",
+                    "type": "address"
+                }
+            ],
+            "name": "AdminChanged",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "implementation",
+                    "type": "address"
+                }
+            ],
+            "name": "Upgraded",
+            "type": "event"
+        },
+        {
+            "stateMutability": "payable",
+            "type": "fallback"
+        }
+    ],
+    "metadata": "{\"compiler\":{\"version\":\"0.8.30+commit.73712a01\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"logic\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"target\",\"type\":\"address\"}],\"name\":\"AddressEmptyCode\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"ERC1967InvalidAdmin\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"ERC1967InvalidImplementation\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ERC1967NonPayable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ProxyDeniedAdminAccess\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"stateMutability\":\"payable\",\"type\":\"fallback\"}],\"devdoc\":{\"errors\":{\"AddressEmptyCode(address)\":[{\"details\":\"There's no code at `target` (it is not a contract).\"}],\"ERC1967InvalidAdmin(address)\":[{\"details\":\"The `admin` of the proxy is invalid.\"}],\"ERC1967InvalidImplementation(address)\":[{\"details\":\"The `implementation` of the proxy is invalid.\"}],\"ERC1967NonPayable()\":[{\"details\":\"An upgrade function sees `msg.value > 0` that may be lost.\"}],\"FailedCall()\":[{\"details\":\"A call to an address target failed. The target may have reverted.\"}],\"ProxyDeniedAdminAccess()\":[{\"details\":\"The proxy caller is the current admin, and can't fallback to the proxy target.\"}]},\"events\":{\"AdminChanged(address,address)\":{\"details\":\"Emitted when the admin account has changed.\"},\"Upgraded(address)\":{\"details\":\"Emitted when the implementation is upgraded.\"}},\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"d:/solidity/NFT/contracts/NftToken_Management/NFTVerificationProxy .sol\":\"NFTVerificationProxy\"},\"evmVersion\":\"prague\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[],\"viaIR\":true},\"sources\":{\"d:/solidity/NFT/contracts/NftToken_Management/NFTVerificationProxy .sol\":{\"keccak256\":\"0xe71759b10ac84bf6c489eda3921c1b7cadddb4132a4f72cc69f9ebe373470125\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://70c98b829b84e64a428446ae3e30d072a95af73c6c96ecd5fc5b9ad7dff2f64b\",\"dweb:/ipfs/QmPwVmATLy1nqVSuyjGWbB4DjP1eZ8PmLLL3PRKXFEdHsG\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/access/Ownable.sol\":{\"keccak256\":\"0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6\",\"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/interfaces/IERC1967.sol\":{\"keccak256\":\"0xbf2aefe54b76d7f7bcd4f6da1080b7b1662611937d870b880db584d09cea56b5\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://f5e7e2f12e0feec75296e57f51f82fdaa8bd1551f4b8cc6560442c0bf60f818c\",\"dweb:/ipfs/QmcW9wDMaQ8RbQibMarfp17a3bABzY5KraWe2YDwuUrUoz\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol\":{\"keccak256\":\"0xa3066ff86b94128a9d3956a63a0511fa1aae41bd455772ab587b32ff322acb2e\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://bf7b192fd82acf6187970c80548f624b1b9c80425b62fa49e7fdb538a52de049\",\"dweb:/ipfs/QmWXG1YCde1tqDYTbNwjkZDWVgPEjzaQGSDqWkyKLzaNua\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol\":{\"keccak256\":\"0xa1ad192cd45317c788618bef5cb1fb3ca4ce8b230f6433ac68cc1d850fb81618\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://b43447bb85a53679d269a403c693b9d88d6c74177dfb35eddca63abaf7cf110a\",\"dweb:/ipfs/QmXSDmpd4bNZj1PDgegr6C4w1jDaWHXCconC3rYiw9TSkQ\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/Proxy.sol\":{\"keccak256\":\"0xc3f2ec76a3de8ed7a7007c46166f5550c72c7709e3fc7e8bb3111a7191cdedbd\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://e73efb4c2ca655882dc237c6b4f234a9bd36d97159d8fcaa837eb01171f726ac\",\"dweb:/ipfs/QmTNnnv7Gu5fs5G1ZMh7Fexp8N4XUs3XrNAngjcxgiss3e\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/beacon/IBeacon.sol\":{\"keccak256\":\"0x20462ddb2665e9521372c76b001d0ce196e59dbbd989de9af5576cad0bd5628b\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://f417fd12aeec8fbfaceaa30e3a08a0724c0bc39de363e2acf6773c897abbaf6d\",\"dweb:/ipfs/QmU4Hko6sApdweVM92CsiuLKkCk8HfyBeutF89PCTz5Tye\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol\":{\"keccak256\":\"0x46f86003755f50eff00a7c5aaf493ae62e024142b8aec4493a313851d3c14872\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://462c770cb667cc75ab22df5a29c50873b24b267274edf87ac5cfe0112bf4c3f7\",\"dweb:/ipfs/QmTfKk32AkQ2yyYZCYJ44V69EM5t9ryBFC6bRF7FVMHXvj\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol\":{\"keccak256\":\"0x92579f452fe663595a898cbac85d80bb3868a6c9f034f19ba7fbebdfa3b65a4d\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://d07a888cd4a26c7077a30dd99e9ac30fbe2752bfb37e58c65f06a3b192079ef3\",\"dweb:/ipfs/QmZCQY4FC4ynBv9dha4BBWM1vYxTUJPBdFBS4HEFe6XzVB\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/utils/Address.sol\":{\"keccak256\":\"0x6d0ae6e206645341fd122d278c2cb643dea260c190531f2f3f6a0426e77b00c0\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://032d1201d839435be2c85b72e33206b3ea980c569d6ebf7fa57d811ab580a82f\",\"dweb:/ipfs/QmeqQjAtMvdZT2tG7zm39itcRJkuwu8AEReK6WRnLJ18DD\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/utils/Context.sol\":{\"keccak256\":\"0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12\",\"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/utils/Errors.sol\":{\"keccak256\":\"0x6afa713bfd42cf0f7656efa91201007ac465e42049d7de1d50753a373648c123\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ba1d02f4847670a1b83dec9f7d37f0b0418d6043447b69f3a29a5f9efc547fcf\",\"dweb:/ipfs/QmQ7iH2keLNUKgq2xSWcRmuBE5eZ3F5whYAkAGzCNNoEWB\"]},\"d:/solidity/NFT/node_modules/@openzeppelin/contracts/utils/StorageSlot.sol\":{\"keccak256\":\"0xcf74f855663ce2ae00ed8352666b7935f6cddea2932fdf2c3ecd30a9b1cd0e97\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://9f660b1f351b757dfe01438e59888f31f33ded3afcf5cb5b0d9bf9aa6f320a8b\",\"dweb:/ipfs/QmarDJ5hZEgBtCmmrVzEZWjub9769eD686jmzb2XpSU1cM\"]}},\"version\":1}",
+    "bytecode": "60a060405234610268575f610aac8038038061001a8161026c565b928339810160608282031261026857610032826102a5565b9061003f602084016102a5565b604084015190936001600160401b038211610268570181601f8201121561026857805161007361006e826102b9565b61026c565b9181835260208301936020838301011161026857815f926020809301865e83010152823b1561024a577f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc80546001600160a01b0319166001600160a01b0385169081179091557fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b5f80a280511561023e5784610134939281925190845af43d15610236573d9161012561006e846102b9565b9283523d86602085013e6102d4565b505b6040519061044080830191906001600160401b038311848410176102225791839160209361064c84396001600160a01b0316815203019082f080156102155760018060a01b031690816080525f516020610a8c5f395f51905f5254907f7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f6040805160018060a01b0385168152856020820152a1821561020157506001600160a01b031916175f516020610a8c5f395f51905f5255604051610319908161033382396080518160070152f35b633173bdd160e11b81526004819052602490fd5b50604051903d90823e3d90fd5b634e487b7160e01b85526041600452602485fd5b6060916102d4565b50505090505f90610136565b634c9c8ce360e01b5f9081526001600160a01b038416600452602490fd5b5f80fd5b6040519190601f01601f191682016001600160401b0381118382101761029157604052565b634e487b7160e01b5f52604160045260245ffd5b51906001600160a01b038216820361026857565b6001600160401b03811161029157601f01601f191660200190565b906102f857508051156102e957602081519101fd5b63d6bda27560e01b5f5260045ffd5b81511580610329575b610309575090565b639996b31560e01b5f9081526001600160a01b0391909116600452602490fd5b50803b1561030156fe6080604052337f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031603610066575f356001600160e01b03191663278f794360e11b1461005c576334ad5dbb60e21b5f5260045ffd5b61006461010a565b005b7f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc545f9081906001600160a01b0316368280378136915af43d5f803e156100ab573d5ff35b3d5ffd5b634e487b7160e01b5f52604160045260245ffd5b6040519190601f01601f1916820167ffffffffffffffff8111838210176100e957604052565b6100af565b67ffffffffffffffff81116100e957601f01601f191660200190565b36600411610193576040366003190112610193576004356001600160a01b03811690819003610193576024359067ffffffffffffffff8211610193573660238301121561019357816004013590610168610163836100ee565b6100c3565b918083523660248286010111610193576020815f92602461019197018387013784010152610197565b565b5f80fd5b90813b1561022b577f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc80546001600160a01b0319166001600160a01b0384169081179091557fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b5f80a2805115610213576102109161024c565b50565b50503461021c57565b63b398979f60e01b5f5260045ffd5b50634c9c8ce360e01b5f9081526001600160a01b0391909116600452602490fd5b5f8061027e93602081519101845af43d15610281573d9161026f610163846100ee565b9283523d5f602085013e610285565b90565b6060915b906102a9575080511561029a57602081519101fd5b63d6bda27560e01b5f5260045ffd5b815115806102da575b6102ba575090565b639996b31560e01b5f9081526001600160a01b0391909116600452602490fd5b50803b156102b256fea2646970667358221220a5b97caf37f16ab5a6f1469fa22409ff806c992791afc749af502b8e1b50dedd64736f6c634300081e003360803460b857601f61044038819003918201601f19168301916001600160401b0383118484101760bc5780849260209460405283398101031260b857516001600160a01b0381169081900360b857801560a5575f80546001600160a01b031981168317825560405192916001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09080a361036f90816100d18239f35b631e4fbdf760e01b5f525f60045260245ffd5b5f80fd5b634e487b7160e01b5f52604160045260245ffdfe60806040526004361015610011575f80fd5b5f5f3560e01c8063715018a6146102765780638da5cb5b1461024f5780639623609d1461012c578063ad3cb1cc146100df5763f2fde38b14610051575f80fd5b346100dc5760203660031901126100dc576004356001600160a01b038116908190036100da5761007f610313565b80156100c65781546001600160a01b03198116821783556001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08380a380f35b631e4fbdf760e01b82526004829052602482fd5b505b80fd5b50346100dc57806003193601126100dc57506101286040516101026040826102cd565b60058152640352e302e360dc1b60208201526040519182916020835260208301906102ef565b0390f35b506060366003190112610237576004356001600160a01b03811690819003610237576024356001600160a01b038116908190036102375760443567ffffffffffffffff8111610237573660238201121561023757806004013567ffffffffffffffff811161023b57604051916101ac601f8301601f1916602001846102cd565b818352366024838301011161023757815f9260246020930183860137830101526101d4610313565b823b156102375761020a925f9260405180958194829363278f794360e11b845260048401526040602484015260448301906102ef565b039134905af1801561022c5761021e575080f35b61022a91505f906102cd565b005b6040513d5f823e3d90fd5b5f80fd5b634e487b7160e01b5f52604160045260245ffd5b34610237575f366003190112610237575f546040516001600160a01b039091168152602090f35b34610237575f3660031901126102375761028e610313565b5f80546001600160a01b0319811682556001600160a01b03167f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e08280a3005b90601f8019910116810190811067ffffffffffffffff82111761023b57604052565b805180835260209291819084018484015e5f828201840152601f01601f1916010190565b5f546001600160a01b0316330361032657565b63118cdaa760e01b5f523360045260245ffdfea264697066735822122014d4ba6bb4908902bca87524a8130392be863457a820fff2d0293044d5e4779964736f6c634300081e0033b53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103",
+    "deployedBytecode": "6080604052337f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031603610066575f356001600160e01b03191663278f794360e11b1461005c576334ad5dbb60e21b5f5260045ffd5b61006461010a565b005b7f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc545f9081906001600160a01b0316368280378136915af43d5f803e156100ab573d5ff35b3d5ffd5b634e487b7160e01b5f52604160045260245ffd5b6040519190601f01601f1916820167ffffffffffffffff8111838210176100e957604052565b6100af565b67ffffffffffffffff81116100e957601f01601f191660200190565b36600411610193576040366003190112610193576004356001600160a01b03811690819003610193576024359067ffffffffffffffff8211610193573660238301121561019357816004013590610168610163836100ee565b6100c3565b918083523660248286010111610193576020815f92602461019197018387013784010152610197565b565b5f80fd5b90813b1561022b577f360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc80546001600160a01b0319166001600160a01b0384169081179091557fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b5f80a2805115610213576102109161024c565b50565b50503461021c57565b63b398979f60e01b5f5260045ffd5b50634c9c8ce360e01b5f9081526001600160a01b0391909116600452602490fd5b5f8061027e93602081519101845af43d15610281573d9161026f610163846100ee565b9283523d5f602085013e610285565b90565b6060915b906102a9575080511561029a57602081519101fd5b63d6bda27560e01b5f5260045ffd5b815115806102da575b6102ba575090565b639996b31560e01b5f9081526001600160a01b0391909116600452602490fd5b50803b156102b256fea2646970667358221220a5b97caf37f16ab5a6f1469fa22409ff806c992791afc749af502b8e1b50dedd64736f6c634300081e0033",
+    "sourceMap": "287:212:0:-:0;;;;;;-1:-1:-1;287:212:0;;;;;;;;:::i;:::-;;;;;;;;;;;;;;;;:::i;:::-;;;;;;;:::i;:::-;;;;;;;-1:-1:-1;;;;;287:212:0;;;;;;;;;;;;;;;;;;;:::i;:::-;;:::i;:::-;;;;;;;;;;;;;;;;;;-1:-1:-1;287:212:0;;;;;;;;;;;1748:29:4;;:34;1744:119;;811:66;287:212:0;;-1:-1:-1;;;;;;287:212:0;-1:-1:-1;;;;;287:212:0;;;;;;;;2407:36:4;-1:-1:-1;;2407:36:4;287:212:0;;2458:15:4;:11;;4065:25:9;4107:55;4065:25;;;;;;;;;287:212:0;;;;;;;;;;:::i;:::-;;;;;;;;;;4107:55:9;:::i;:::-;;2454:148:4;287:212:0;;;5290:28:8;;;;;;-1:-1:-1;;;;;5290:28:8;;;;;;;;;;;287:212:0;5290:28:8;;;;-1:-1:-1;;;;;287:212:0;;;5290:28:8;;;;;;;;;287:212:0;;;;;;5273:46:8;;;;-1:-1:-1;;;;;;;;;;;2868:66:4;287:212:0;3890:43:4;287:212:0;;;;;;;;;;;;;;;;;3890:43:4;3549:22;;3545:91;;-1:-1:-1;;;;;;;287:212:0;;-1:-1:-1;;;;;;;;;;;287:212:0;;;;;;;;;5273:46:8;287:212:0;;;;;;3545:91:4;-1:-1:-1;;;3594:31:4;;;287:212:0;;;;;3594:31:4;5290:28:8;287:212:0;;;;;;;;;;;5290:28:8;-1:-1:-1;;;287:212:0;;;;;;;;;;;4107:55:9;:::i;2454:148:4:-;6159:70;;;;;-1:-1:-1;2454:148:4;;;1744:119;-1:-1:-1;;;;1805:47:4;;;-1:-1:-1;;;;;287:212:0;;1805:47:4;287:212:0;;;1805:47:4;287:212:0;-1:-1:-1;287:212:0;;;;;;;;;-1:-1:-1;;287:212:0;;;-1:-1:-1;;;;;287:212:0;;;;;;;;;;:::o;:::-;;;;-1:-1:-1;287:212:0;;;;;-1:-1:-1;287:212:0;;;;-1:-1:-1;;;;;287:212:0;;;;;;:::o;:::-;-1:-1:-1;;;;;287:212:0;;;;;;-1:-1:-1;;287:212:0;;;;:::o;4437:582:9:-;;4609:8;;-1:-1:-1;287:212:0;;5690:21:9;:17;;5815:105;;;;;;5686:301;5957:19;;;5710:1;5957:19;;5710:1;5957:19;4605:408;287:212:0;;4857:22:9;:49;;;4605:408;4853:119;;4985:17;;:::o;4853:119::-;-1:-1:-1;;;4878:1:9;4933:24;;;-1:-1:-1;;;;;287:212:0;;;;4933:24:9;287:212:0;;;4933:24:9;4857:49;4883:18;;;:23;4857:49;",
+    "deployedSourceMap": "287:212:0:-:0;;;5816:10:8;5600:6;-1:-1:-1;;;;;287:212:0;5816:27:8;287:212:0;;5863:7:8;;-1:-1:-1;;;;;;5863:7:8;-1:-1:-1;;;5863:65:8;5874:54;;5955:24;;;5863:7;5955:24;;5863:7;5955:24;5859:201;;;:::i;:::-;287:212:0;5812:306:8;811:66:4;;-1:-1:-1;;;;;;;;;287:212:0;1019:819:5;-1:-1:-1;;1019:819:5;;;;;;;-1:-1:-1;1019:819:5;;;;;;-1:-1:-1;1019:819:5;;;-1:-1:-1;1019:819:5;287:212:0;;;;;;;;;;;;;;;;;;;-1:-1:-1;;287:212:0;;;;;;;;;;;;;;:::o;:::-;;:::i;:::-;;;;;;;;-1:-1:-1;;287:212:0;;;;:::o;6326:217:8:-;6441:8;6450:1;287:212:0;;;;6441:8:8;-1:-1:-1;;287:212:0;;;;6450:1:8;287:212:0;-1:-1:-1;;;;;287:212:0;;;;;;;;;;;;;;;;6441:8:8;287:212:0;;;;;;;;6450:1:8;287:212:0;;;;;;;:::i;:::-;;:::i;:::-;;;;;6441:8:8;287:212:0;;;;;;;;;;6441:8:8;287:212:0;;6531:4:8;287:212:0;;;;;;;;;;6531:4:8;:::i;:::-;6326:217::o;287:212:0:-;6441:8:8;287:212:0;;2264:344:4;;1748:29;;:34;1744:119;;811:66;287:212:0;;-1:-1:-1;;;;;;287:212:0;-1:-1:-1;;;;;287:212:0;;;;;;;;2407:36:4;-1:-1:-1;;2407:36:4;287:212:0;;2458:15:4;:11;;2489:53;;;:::i;:::-;;2264:344::o;2454:148::-;6163:9;;;6159:70;;2264:344::o;6159:70::-;6199:19;;;1781:1;6199:19;;1781:1;6199:19;1744:119;-1:-1:-1;;;;1781:1:4;1805:47;;;-1:-1:-1;;;;;287:212:0;;;;1805:47:4;287:212:0;;;1805:47:4;3916:253:9;4065:25;3916:253;4107:55;3916:253;4065:25;;;;;;;;287:212:0;;;;;;;;;;:::i;:::-;;;;;4065:25:9;;287:212:0;;;4107:55:9;:::i;:::-;3916:253;:::o;287:212:0:-;;;4437:582:9;;4609:8;;-1:-1:-1;287:212:0;;5690:21:9;:17;;5815:105;;;;;;5686:301;5957:19;;;5710:1;5957:19;;5710:1;5957:19;4605:408;287:212:0;;4857:22:9;:49;;;4605:408;4853:119;;4985:17;;:::o;4853:119::-;-1:-1:-1;;;4878:1:9;4933:24;;;-1:-1:-1;;;;;287:212:0;;;;4933:24:9;287:212:0;;;4933:24:9;4857:49;4883:18;;;:23;4857:49;",
+    "sourcePath": "d:/solidity/NFT/contracts/NftToken_Management/NFTVerificationProxy .sol",
+    "compiler": {
+        "name": "solc",
+        "version": "0.8.30+commit.73712a01"
+    },
+    "ast": {
+        "absolutePath": "d:/solidity/NFT/contracts/NftToken_Management/NFTVerificationProxy .sol",
+        "exportedSymbols": {
+            "ERC1967Proxy": [
+                240
+            ],
+            "ERC1967Utils": [
+                534
+            ],
+            "IERC1967": [
+                202
+            ],
+            "ITransparentUpgradeableProxy": [
+                650
+            ],
+            "NFTVerificationProxy": [
+                21
+            ],
+            "NFTVerificationProxyAdmin": [
+                33
+            ],
+            "Ownable": [
+                181
+            ],
+            "ProxyAdmin": [
+                628
+            ],
+            "TransparentUpgradeableProxy": [
+                764
+            ]
+        },
+        "id": 34,
+        "license": "MIT",
+        "nodeType": "SourceUnit",
+        "nodes": [
+            {
+                "id": 1,
+                "literals": [
+                    "solidity",
+                    "^",
+                    "0.8",
+                    ".28"
+                ],
+                "nodeType": "PragmaDirective",
+                "src": "33:24:0"
+            },
+            {
+                "absolutePath": "d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+                "file": "d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+                "id": 2,
+                "nameLocation": "-1:-1:-1",
+                "nodeType": "ImportDirective",
+                "scope": 34,
+                "sourceUnit": 765,
+                "src": "61:112:0",
+                "symbolAliases": [],
+                "unitAlias": ""
+            },
+            {
+                "absolutePath": "d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol",
+                "file": "d:/solidity/NFT/node_modules/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol",
+                "id": 3,
+                "nameLocation": "-1:-1:-1",
+                "nodeType": "ImportDirective",
+                "scope": 34,
+                "sourceUnit": 629,
+                "src": "175:95:0",
+                "symbolAliases": [],
+                "unitAlias": ""
+            },
+            {
+                "abstract": false,
+                "baseContracts": [
+                    {
+                        "baseName": {
+                            "id": 4,
+                            "name": "TransparentUpgradeableProxy",
+                            "nameLocations": [
+                                "320:27:0"
+                            ],
+                            "nodeType": "IdentifierPath",
+                            "referencedDeclaration": 764,
+                            "src": "320:27:0"
+                        },
+                        "id": 5,
+                        "nodeType": "InheritanceSpecifier",
+                        "src": "320:27:0"
+                    }
+                ],
+                "canonicalName": "NFTVerificationProxy",
+                "contractDependencies": [
+                    628
+                ],
+                "contractKind": "contract",
+                "fullyImplemented": true,
+                "id": 21,
+                "linearizedBaseContracts": [
+                    21,
+                    764,
+                    240,
+                    570
+                ],
+                "name": "NFTVerificationProxy",
+                "nameLocation": "296:20:0",
+                "nodeType": "ContractDefinition",
+                "nodes": [
+                    {
+                        "body": {
+                            "id": 19,
+                            "nodeType": "Block",
+                            "src": "494:2:0",
+                            "statements": []
+                        },
+                        "id": 20,
+                        "implemented": true,
+                        "kind": "constructor",
+                        "modifiers": [
+                            {
+                                "arguments": [
+                                    {
+                                        "id": 14,
+                                        "name": "logic",
+                                        "nodeType": "Identifier",
+                                        "overloadedDeclarations": [],
+                                        "referencedDeclaration": 7,
+                                        "src": "477:5:0",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    },
+                                    {
+                                        "id": 15,
+                                        "name": "admin",
+                                        "nodeType": "Identifier",
+                                        "overloadedDeclarations": [],
+                                        "referencedDeclaration": 9,
+                                        "src": "483:5:0",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    },
+                                    {
+                                        "id": 16,
+                                        "name": "data",
+                                        "nodeType": "Identifier",
+                                        "overloadedDeclarations": [],
+                                        "referencedDeclaration": 11,
+                                        "src": "489:4:0",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_bytes_memory_ptr",
+                                            "typeString": "bytes memory"
+                                        }
+                                    }
+                                ],
+                                "id": 17,
+                                "kind": "baseConstructorSpecifier",
+                                "modifierName": {
+                                    "id": 13,
+                                    "name": "TransparentUpgradeableProxy",
+                                    "nameLocations": [
+                                        "449:27:0"
+                                    ],
+                                    "nodeType": "IdentifierPath",
+                                    "referencedDeclaration": 764,
+                                    "src": "449:27:0"
+                                },
+                                "nodeType": "ModifierInvocation",
+                                "src": "449:45:0"
+                            }
+                        ],
+                        "name": "",
+                        "nameLocation": "-1:-1:-1",
+                        "nodeType": "FunctionDefinition",
+                        "parameters": {
+                            "id": 12,
+                            "nodeType": "ParameterList",
+                            "parameters": [
+                                {
+                                    "constant": false,
+                                    "id": 7,
+                                    "mutability": "mutable",
+                                    "name": "logic",
+                                    "nameLocation": "384:5:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 20,
+                                    "src": "376:13:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "typeIdentifier": "t_address",
+                                        "typeString": "address"
+                                    },
+                                    "typeName": {
+                                        "id": 6,
+                                        "name": "address",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "376:7:0",
+                                        "stateMutability": "nonpayable",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                },
+                                {
+                                    "constant": false,
+                                    "id": 9,
+                                    "mutability": "mutable",
+                                    "name": "admin",
+                                    "nameLocation": "408:5:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 20,
+                                    "src": "400:13:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "typeIdentifier": "t_address",
+                                        "typeString": "address"
+                                    },
+                                    "typeName": {
+                                        "id": 8,
+                                        "name": "address",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "400:7:0",
+                                        "stateMutability": "nonpayable",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                },
+                                {
+                                    "constant": false,
+                                    "id": 11,
+                                    "mutability": "mutable",
+                                    "name": "data",
+                                    "nameLocation": "437:4:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 20,
+                                    "src": "424:17:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "memory",
+                                    "typeDescriptions": {
+                                        "typeIdentifier": "t_bytes_memory_ptr",
+                                        "typeString": "bytes"
+                                    },
+                                    "typeName": {
+                                        "id": 10,
+                                        "name": "bytes",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "424:5:0",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_bytes_storage_ptr",
+                                            "typeString": "bytes"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "src": "365:83:0"
+                        },
+                        "returnParameters": {
+                            "id": 18,
+                            "nodeType": "ParameterList",
+                            "parameters": [],
+                            "src": "494:0:0"
+                        },
+                        "scope": 21,
+                        "src": "354:142:0",
+                        "stateMutability": "nonpayable",
+                        "virtual": false,
+                        "visibility": "public"
+                    }
+                ],
+                "scope": 34,
+                "src": "287:212:0",
+                "usedErrors": [
+                    260,
+                    265,
+                    273,
+                    658,
+                    774,
+                    1067
+                ],
+                "usedEvents": [
+                    189,
+                    196
+                ]
+            },
+            {
+                "abstract": false,
+                "baseContracts": [
+                    {
+                        "baseName": {
+                            "id": 22,
+                            "name": "ProxyAdmin",
+                            "nameLocations": [
+                                "541:10:0"
+                            ],
+                            "nodeType": "IdentifierPath",
+                            "referencedDeclaration": 628,
+                            "src": "541:10:0"
+                        },
+                        "id": 23,
+                        "nodeType": "InheritanceSpecifier",
+                        "src": "541:10:0"
+                    }
+                ],
+                "canonicalName": "NFTVerificationProxyAdmin",
+                "contractDependencies": [],
+                "contractKind": "contract",
+                "fullyImplemented": true,
+                "id": 33,
+                "linearizedBaseContracts": [
+                    33,
+                    628,
+                    181,
+                    1054
+                ],
+                "name": "NFTVerificationProxyAdmin",
+                "nameLocation": "512:25:0",
+                "nodeType": "ContractDefinition",
+                "nodes": [
+                    {
+                        "body": {
+                            "id": 31,
+                            "nodeType": "Block",
+                            "src": "633:2:0",
+                            "statements": []
+                        },
+                        "id": 32,
+                        "implemented": true,
+                        "kind": "constructor",
+                        "modifiers": [
+                            {
+                                "arguments": [
+                                    {
+                                        "id": 28,
+                                        "name": "initialOwener",
+                                        "nodeType": "Identifier",
+                                        "overloadedDeclarations": [],
+                                        "referencedDeclaration": 25,
+                                        "src": "619:13:0",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    }
+                                ],
+                                "id": 29,
+                                "kind": "baseConstructorSpecifier",
+                                "modifierName": {
+                                    "id": 27,
+                                    "name": "ProxyAdmin",
+                                    "nameLocations": [
+                                        "608:10:0"
+                                    ],
+                                    "nodeType": "IdentifierPath",
+                                    "referencedDeclaration": 628,
+                                    "src": "608:10:0"
+                                },
+                                "nodeType": "ModifierInvocation",
+                                "src": "608:25:0"
+                            }
+                        ],
+                        "name": "",
+                        "nameLocation": "-1:-1:-1",
+                        "nodeType": "FunctionDefinition",
+                        "parameters": {
+                            "id": 26,
+                            "nodeType": "ParameterList",
+                            "parameters": [
+                                {
+                                    "constant": false,
+                                    "id": 25,
+                                    "mutability": "mutable",
+                                    "name": "initialOwener",
+                                    "nameLocation": "588:13:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 32,
+                                    "src": "580:21:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "typeIdentifier": "t_address",
+                                        "typeString": "address"
+                                    },
+                                    "typeName": {
+                                        "id": 24,
+                                        "name": "address",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "580:7:0",
+                                        "stateMutability": "nonpayable",
+                                        "typeDescriptions": {
+                                            "typeIdentifier": "t_address",
+                                            "typeString": "address"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "src": "569:39:0"
+                        },
+                        "returnParameters": {
+                            "id": 30,
+                            "nodeType": "ParameterList",
+                            "parameters": [],
+                            "src": "633:0:0"
+                        },
+                        "scope": 33,
+                        "src": "558:77:0",
+                        "stateMutability": "nonpayable",
+                        "virtual": false,
+                        "visibility": "public"
+                    }
+                ],
+                "scope": 34,
+                "src": "503:135:0",
+                "usedErrors": [
+                    47,
+                    52
+                ],
+                "usedEvents": [
+                    58
+                ]
+            }
+        ],
+        "src": "33:605:0"
+    },
+    "functionHashes": {},
+    "gasEstimates": {
+        "creation": {
+            "codeDepositCost": "158600",
+            "executionCost": "infinite",
+            "totalCost": "infinite"
+        },
+        "external": {
+            "": "infinite"
+        }
+    }
+}
