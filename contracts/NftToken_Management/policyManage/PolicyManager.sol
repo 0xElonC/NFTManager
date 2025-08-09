@@ -8,7 +8,8 @@ import {IPolicyManager} from "./interfaces/IPolicyManager.sol";
 
 contract PolicyManager is IPolicyManager, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
-    EnumerableSet.AddressSet private _whitelistedPolicies;    constructor(address initialOwner, address[] memory initialPolicies) Ownable(initialOwner) {
+    EnumerableSet.AddressSet private _whitelistedPolicies;    
+    constructor(address initialOwner, address[] memory initialPolicies) Ownable(initialOwner) {
 
         for (uint256 i = 0; i < initialPolicies.length; i++) {
             _whitelistedPolicies.add(initialPolicies[i]);

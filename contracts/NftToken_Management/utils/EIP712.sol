@@ -30,7 +30,7 @@ contract EIP712{
 
     bytes32 DOMAIN_SEPARATOR;
 
-    bytes32 public immutable domainSeparator;
+    bytes32 public domainSeparator;
 
     function _hashDomain(EIP712Domain memory eip712Domain)
         internal

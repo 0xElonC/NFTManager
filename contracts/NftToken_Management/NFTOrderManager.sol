@@ -13,10 +13,11 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./policyManage/interfaces/IPolicyManager.sol";
 import "./policyManage/interfaces/IMatchingPolicy.sol";
+import "./interfaces/IExecutionDelegate.sol";
 import "./utils/EIP712.sol";
 import "./utils/MerkleVerifier.sol";
 
-import {Order, AssetType, Input, Side, SignatureVersion} from "./struct/OrderStruct.sol";
+import {Order, AssetType, Input, Side, SignatureVersion,Fee} from "./struct/OrderStruct.sol";
 
 contract NFTOrderManager is
     Initializable,
@@ -33,6 +34,8 @@ contract NFTOrderManager is
     /*storage */
     mapping(bytes32 => bool) public cancelOrFilled;
     mapping(address => uint256) public nonces;
+    bool public isInternal = false;
+    uint256 public balanceETH = 0;
 
     /* Constants */
     string public constant NAME = "XY";
@@ -42,7 +45,12 @@ contract NFTOrderManager is
 
     /*Variables*/
     IPolicyManager public policyManager;
+    IExecutionDelegate public executionDelegate;
 
+    /* Governance Variables */
+    uint256 public feeRate;
+    address public feeRecipient;
+ 
     /*Event*/
     event OrderCreated(
         uint256 indexed orderId,
@@ -55,6 +63,26 @@ contract NFTOrderManager is
         uint256 vaildUntil
     );
 
+    /*modifier*/
+    modifier onlyOperator() {
+        require(hasRole(OPERATOR_ROLE, msg.sender));
+        _;
+    }
+
+    modifier internalCall() {
+        require(isInternal,"Unsafe call");
+        _;
+    }
+
+    modifier setupExecution() {
+        require(!isInternal,"unsafe call");
+        balanceETH = msg.value;
+        isInternal = true;
+        _;
+        balanceETH = 0;
+        isInternal = false;
+    }
+
     function initialize(uint _blockRange) external initializer {
         __Ownable2Step_init();
         __ReentrancyGuard_init();
@@ -64,11 +92,6 @@ contract NFTOrderManager is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
         orderCounter = 1;
-    }
-
-    modifier onlyOperator() {
-        require(hasRole(OPERATOR_ROLE, msg.sender));
-        _;
     }
 
     /**
@@ -92,11 +115,22 @@ contract NFTOrderManager is
             "buy has invalid parameters"
         );
 
-        require(
-            _validateSignatures(sell, sellHash),
-            "Sell failed authorization"
-        );
+        require( _validateSignatures(sell, sellHash),"Sell failed authorization");
         require(_validateSignatures(buy, buyHash), "Buy failed autonrization");
+
+        (uint256 price,uint256 tokenId,uint256 amount, AssetType assetType) = _canMatchOrders(sell.order, buy.order);
+
+        cancelOrFilled[sellHash] = true;
+        cancelOrFilled[buyHash] = true;
+
+        _executeFundsTransfer(
+            sell.order.trader,
+            buy.order.trader,
+            sell.order.paymentToken,
+            sell.order.fees,
+            buy.order.fees,
+            price
+        );
     }
 
     /**
@@ -181,7 +215,15 @@ contract NFTOrderManager is
         }
         return _verify(trader, hashToSign, v, r, s);
     }
-
+    /**
+     * verity match
+     * @param sell sell
+     * @param buy  buy 
+     * @return tokenId 
+     * @return amount 
+     * @return price 
+     * @return assetType 
+     */
     function _canMatchOrders(
         Order calldata sell,
         Order calldata buy
@@ -198,17 +240,114 @@ contract NFTOrderManager is
         bool canMatch;
         if (sell.createAT < buy.createAT) {
             //seller is maker
-            require(policyManager.isPolicyWhitelisted(sell.matchingPolicy),"policy is not whitelist");
-            (canMatch,price,tokenId,amount,assetType) = IMatchingPolicy(sell.matchingPolicy).canMatchMakerAsk(sell,buy);
+            require(
+                policyManager.isPolicyWhitelisted(sell.matchingPolicy),
+                "policy is not whitelist"
+            );
+            (canMatch, price, tokenId, amount, assetType) = IMatchingPolicy(
+                sell.matchingPolicy
+            ).canMatchMakerAsk(sell, buy);
         }
-        if(buy.createAT < sell.createAT){
+        if (buy.createAT < sell.createAT) {
             //buyer is maker
-            require(policyManager.isPolicyWhitelisted(buy.matchingPolicy),"policy is not whitelist");
-            (canMatch,price,tokenId,amount,assetType) = IMatchingPolicy(buy.matchingPolicy).canMatchMakerAsk(sell,buy);
+            require(
+                policyManager.isPolicyWhitelisted(buy.matchingPolicy),
+                "policy is not whitelist"
+            );
+            (canMatch, price, tokenId, amount, assetType) = IMatchingPolicy(
+                buy.matchingPolicy
+            ).canMatchMakerAsk(sell, buy);
         }
 
-        require(canMatch,"Orders cannot be matched");
+        require(canMatch, "Orders cannot be matched");
         return (price, tokenId, amount, assetType);
+    }
+
+    function _executeFundsTransfer(
+        address seller,
+        address buyer,
+        address paymentToken,
+        Fee[] calldata sellerFees,
+        Fee[] calldata buyerFees,
+        uint256 price
+    )internal {
+        if(paymentToken == address(0)){
+            require(msg.sender == buyer,"cannot use ETH");
+            require(balanceETH >= price,"Insufficient value");
+            balanceETH -= price;
+        }
+
+        uint256 sellerFeePaid = _transferFees(sellerFees,paymentToken,buyer,price,true);
+        uint256 buyerFeePaid = _transferFees(buyerFees,paymentToken,buyer,price,false);
+        if(paymentToken == address(0)){
+            //Need to account for buyer fees paid on top of the price.
+            balanceETH -= buyerFeePaid;
+        }
+
+
+    }
+
+    /**
+     * charge a fee in ETH or WETH
+     * @param Fees fees 
+     * @param paymentToken address of token to pay in
+     * @param from address to charge fees
+     * @param price price to token
+     * @param protocolFee  total fees paid
+     */
+    function _transferFees(
+        Fee[] memory Fees,
+        address paymentToken,
+        address from,
+        uint256 price,
+        bool protocolFee
+        ) internal returns(uint256) {
+        uint256 totalFee = 0;
+        if(protocolFee && feeRate > 0){
+            uint256 fee = (price * feeRate) / INVERSE_BASIS_POINT;
+            _transferTo(paymentToken,from,feeRecipient,fee);
+            totalFee += fee;
+        }
+
+        //Take order fees
+        for(uint256 i =0 ;i<Fees.length;i++){
+            uint256 fee = (price * Fees[i].rate) / INVERSE_BASIS_POINT;
+            _transferTo(paymentToken,from,feeRecipient,fee);
+            totalFee += fee;
+        }
+
+        require(totalFee<= price," Fees are more than the price");
+
+        return totalFee;
+    }
+
+    /**
+     * Determine the transaction token to execute the transaction.
+     * @param paymentToken paymentToken 
+     * @param from  from address
+     * @param to   to address 
+     * @param amount token amount
+     */
+    function _transferTo(
+        address paymentToken,
+        address from,
+        address to,
+        uint256 amount
+    )internal {
+        if(amount == 0 ){
+            return;
+        }
+        if(paymentToken == address(0)){
+            //Transfer funds in ETH
+            require(to != address(0),"transfer to zero addresss");
+            (bool success,) = payable(to).call{value:amount}("");
+            require(success,"ETH transfer failed");
+        }else if(paymentToken == WETH){
+            //Transfer funds in WETH
+            executionDelegate.transferERC20(from,to,WETH,amount);
+        }else{
+            revert("Error PaymentToken");
+        }
     }
 
     function onERC721Received(
@@ -223,7 +362,6 @@ contract NFTOrderManager is
 
     // 接收ETH回调
     receive() external payable {
-        revert("Do not send ETH directly");
     }
 
     function _verify(
