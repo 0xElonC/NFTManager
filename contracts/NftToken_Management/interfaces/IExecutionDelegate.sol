@@ -7,5 +7,9 @@ interface IExecutionDelegate {
     function denyContract(address _contract) external;
     function revokeApproval() external;
     function grantApproval() external;
-    function transferERC20(address token,address from,address to, uint256 amount) external;
+    function transferERC20(address from,address to,address token,uint256 amount) external;
+
+    function transferERC721(address from,address to,address token,uint256 tokenId) external;
+
+    function transferERC1155(address from,address to,address token,uint256 tokenId,uint256 amount)external;
 }

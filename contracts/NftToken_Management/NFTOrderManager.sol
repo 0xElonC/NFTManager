@@ -62,6 +62,14 @@ contract NFTOrderManager is
         uint256 quantity,
         uint256 vaildUntil
     );
+    event OrderMatched(
+        address indexed maker,
+        address indexed taker,
+        Order sell,
+        bytes32 sellHash,
+        Order buy,
+        bytes32 buyHash
+    );
 
     /*modifier*/
     modifier onlyOperator() {
@@ -115,7 +123,7 @@ contract NFTOrderManager is
             "buy has invalid parameters"
         );
 
-        require( _validateSignatures(sell, sellHash),"Sell failed authorization");
+        require(_validateSignatures(sell, sellHash),"Sell failed authorization");
         require(_validateSignatures(buy, buyHash), "Buy failed autonrization");
 
         (uint256 price,uint256 tokenId,uint256 amount, AssetType assetType) = _canMatchOrders(sell.order, buy.order);
@@ -130,6 +138,24 @@ contract NFTOrderManager is
             sell.order.fees,
             buy.order.fees,
             price
+        );
+
+        _executeTokenTransfer(
+            sell.order.trader,
+            buy.order.trader,
+            sell.order.nftContract,
+            tokenId,
+            amount,
+            assetType
+        );
+
+        emit OrderMatched(
+            sell.order.createAT > buy.order.createAT ? sell.order.trader : buy.order.trader,
+            buy.order.createAT <= sell.order.createAT ? sell.order.trader : buy.order.trader,
+            sell.order,
+            sellHash,
+            buy.order,
+            buyHash
         );
     }
 
@@ -175,6 +201,7 @@ contract NFTOrderManager is
         ) {
             return false;
         }
+        return true;
     }
 
     /**
@@ -260,9 +287,18 @@ contract NFTOrderManager is
         }
 
         require(canMatch, "Orders cannot be matched");
-        return (price, tokenId, amount, assetType);
+        return (tokenId, amount, price, assetType);
     }
 
+    /**
+     * Execution transaction GAS fee
+     * @param seller The address of the seller.
+     * @param buyer The address of the buyer.
+     * @param paymentToken The address of the payment token.
+     * @param sellerFees Array of fees to be paid by the seller.
+     * @param buyerFees Array of fees to be paid by the buyer.
+     * @param price The price of the transaction.
+     */
     function _executeFundsTransfer(
         address seller,
         address buyer,
@@ -285,6 +321,22 @@ contract NFTOrderManager is
         }
 
 
+    }
+
+    function _executeTokenTransfer(
+        address seller,
+        address buyer,
+        address nftContract,
+        uint256 tokenId,
+        uint256 amount,
+        AssetType assertType
+    )internal{
+        if(assertType == AssetType.ERC721){
+            executionDelegate.transferERC721(seller,buyer,nftContract,tokenId);
+        }
+        if(assertType == AssetType.ERC1155){
+            executionDelegate.transferERC1155(seller,buyer,nftContract,tokenId,amount);
+        }
     }
 
     /**
