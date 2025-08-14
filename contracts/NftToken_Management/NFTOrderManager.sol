@@ -17,7 +17,9 @@ import "./interfaces/IExecutionDelegate.sol";
 import "./utils/EIP712.sol";
 import "./utils/MerkleVerifier.sol";
 
-import {Order, AssetType, Input, Side, SignatureVersion,Fee} from "./struct/OrderStruct.sol";
+import {Order, AssetType, Input, Side, SignatureVersion, Fee, Execution} from "./struct/OrderStruct.sol";
+
+import "hardhat/console.sol";
 
 contract NFTOrderManager is
     Initializable,
@@ -34,12 +36,10 @@ contract NFTOrderManager is
     /*storage */
     mapping(bytes32 => bool) public cancelOrFilled;
     mapping(address => uint256) public nonces;
-    bool public isInternal = false;
-    uint256 public balanceETH = 0;
+    bool public isInternal;
+    uint256 public balanceETH;
 
     /* Constants */
-    string public constant NAME = "XY";
-    string public constant VERSION = "1.0";
     uint256 public constant INVERSE_BASIS_POINT = 10_000;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
@@ -50,7 +50,7 @@ contract NFTOrderManager is
     /* Governance Variables */
     uint256 public feeRate;
     address public feeRecipient;
- 
+
     /*Event*/
     event OrderCreated(
         uint256 indexed orderId,
@@ -60,7 +60,8 @@ contract NFTOrderManager is
         AssetType AssetType,
         uint256 price,
         uint256 quantity,
-        uint256 vaildUntil
+        uint256 vaildUntil,
+        uint256 nonce
     );
     event OrderMatched(
         address indexed maker,
@@ -78,12 +79,12 @@ contract NFTOrderManager is
     }
 
     modifier internalCall() {
-        require(isInternal,"Unsafe call");
+        require(isInternal, "Unsafe call");
         _;
     }
 
     modifier setupExecution() {
-        require(!isInternal,"unsafe call");
+        require(!isInternal, "unsafe call");
         balanceETH = msg.value;
         isInternal = true;
         _;
@@ -91,7 +92,12 @@ contract NFTOrderManager is
         isInternal = false;
     }
 
-    function initialize(uint _blockRange) external initializer {
+    function initialize(
+        address ownerAddress,
+        IPolicyManager _policyManager,
+        IExecutionDelegate _executionDelegate
+    ) external initializer {
+        __Ownable_init(ownerAddress);
         __Ownable2Step_init();
         __ReentrancyGuard_init();
         __Pausable_init();
@@ -99,6 +105,18 @@ contract NFTOrderManager is
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(OPERATOR_ROLE, msg.sender);
+        policyManager = _policyManager;
+        executionDelegate = _executionDelegate;
+        isInternal = false; // 原来写在声明处的值
+        balanceETH = 0;
+        DOMAIN_SEPARATOR = _hashDomain(
+            EIP712Domain({
+                name: "XY",
+                version: "1.0",
+                chainId: block.chainid,
+                verifyingContract: address(this)
+            })
+        );
         orderCounter = 1;
     }
 
@@ -110,10 +128,81 @@ contract NFTOrderManager is
     function execute(
         Input calldata sell,
         Input calldata buy
-    ) external payable nonReentrant {
+    ) external payable setupExecution nonReentrant {
+        _execute(sell, buy);
+        _returnDust();
+    }
+
+    function blukExecute(
+        Execution[] calldata executions
+    ) external payable setupExecution {
+        /*
+        uint256 executionsLength = executions.length;
+        for(uint8 i=0;i<executionsLength,i++){
+            bytes32 memroy data = abi.encodeWithSelector(_execute.selector,executions.sell,executions.buy);
+            (bool success,) = address(this).delegatecall(data);
+        }
+        */
+        uint256 executionsLength = executions.length;
+        if (executionsLength == 0) {
+            revert("No order to execute");
+        }
+        for (uint8 i = 0; i < executionsLength; i++) {
+            assembly {
+                let memPoint := mload(0x40)
+
+                let order_localtion := calldataload(
+                    add(executions.offset, mul(i, 0x20))
+                )
+                let order_point := add(executions.offset, order_localtion)
+
+                let size
+                switch eq(add(i, 0x01), executionsLength)
+                case 1 {
+                    size := sub(calldatasize(), order_point)
+                }
+                default {
+                    let next_order_localtion := calldataload(
+                        add(executions.offset, mul(add(i, 0x01), 0x20))
+                    )
+                    let next_order_point := add(
+                        executions.offset,
+                        next_order_localtion
+                    )
+                    size := sub(next_order_point, order_point)
+                }
+
+                mstore(
+                    memPoint,
+                    0xe04d94ae00000000000000000000000000000000000000000000000000000000
+                )
+                calldatacopy(add(0x04, memPoint), order_point, size)
+                let result := delegatecall(
+                    gas(),
+                    address(),
+                    memPoint,
+                    add(size, 0x04),
+                    0,
+                    0
+                )
+            }
+        }
+        _returnDust();
+    }
+
+    /**
+     * Executes a trade between a sell order and a buy order.
+     * @param sell The input struct containing the sell order details.
+     * @param buy The input struct containing the buy order details.
+     */
+    function _execute(
+        Input calldata sell,
+        Input calldata buy
+    ) public payable internalCall nonReentrant {
         require(sell.order.side == Side.Sell);
         bytes32 sellHash = _hashOrder(sell.order, nonces[sell.order.trader]);
         bytes32 buyHash = _hashOrder(buy.order, nonces[buy.order.trader]);
+
         require(
             _vaildataOrderParameters(sell.order, sellHash),
             "sell has invalid parameters"
@@ -122,15 +211,20 @@ contract NFTOrderManager is
             _vaildataOrderParameters(buy.order, buyHash),
             "buy has invalid parameters"
         );
-
-        require(_validateSignatures(sell, sellHash),"Sell failed authorization");
+        require(
+            _validateSignatures(sell, sellHash),
+            "Sell failed authorization"
+        );
         require(_validateSignatures(buy, buyHash), "Buy failed autonrization");
-
-        (uint256 price,uint256 tokenId,uint256 amount, AssetType assetType) = _canMatchOrders(sell.order, buy.order);
+        (
+            uint256 price,
+            uint256 tokenId,
+            uint256 amount,
+            AssetType assetType
+        ) = _canMatchOrders(sell.order, buy.order);
 
         cancelOrFilled[sellHash] = true;
         cancelOrFilled[buyHash] = true;
-
         _executeFundsTransfer(
             sell.order.trader,
             buy.order.trader,
@@ -139,7 +233,6 @@ contract NFTOrderManager is
             buy.order.fees,
             price
         );
-
         _executeTokenTransfer(
             sell.order.trader,
             buy.order.trader,
@@ -150,8 +243,12 @@ contract NFTOrderManager is
         );
 
         emit OrderMatched(
-            sell.order.createAT > buy.order.createAT ? sell.order.trader : buy.order.trader,
-            buy.order.createAT <= sell.order.createAT ? sell.order.trader : buy.order.trader,
+            sell.order.createAT > buy.order.createAT
+                ? sell.order.trader
+                : buy.order.trader,
+            buy.order.createAT <= sell.order.createAT
+                ? sell.order.trader
+                : buy.order.trader,
             sell.order,
             sellHash,
             buy.order,
@@ -172,7 +269,7 @@ contract NFTOrderManager is
         (order.trader != address(0)) &&
             (cancelOrFilled[orderhash] == false) &&
             (order.createAT < block.timestamp) &&
-            (order.validUntil == 0 || order.validUntil < block.timestamp));
+            (order.validUntil > block.timestamp));
     }
 
     /**
@@ -242,14 +339,15 @@ contract NFTOrderManager is
         }
         return _verify(trader, hashToSign, v, r, s);
     }
+
     /**
      * verity match
      * @param sell sell
-     * @param buy  buy 
-     * @return tokenId 
-     * @return amount 
-     * @return price 
-     * @return assetType 
+     * @param buy  buy
+     * @return tokenId
+     * @return amount
+     * @return price
+     * @return assetType
      */
     function _canMatchOrders(
         Order calldata sell,
@@ -265,6 +363,7 @@ contract NFTOrderManager is
         )
     {
         bool canMatch;
+
         if (sell.createAT < buy.createAT) {
             //seller is maker
             require(
@@ -306,21 +405,31 @@ contract NFTOrderManager is
         Fee[] calldata sellerFees,
         Fee[] calldata buyerFees,
         uint256 price
-    )internal {
-        if(paymentToken == address(0)){
-            require(msg.sender == buyer,"cannot use ETH");
-            require(balanceETH >= price,"Insufficient value");
+    ) internal setupExecution {
+        if (paymentToken == address(0)) {
+            require(msg.sender == buyer, "cannot use ETH");
+            require(balanceETH >= price, "Insufficient value");
             balanceETH -= price;
         }
 
-        uint256 sellerFeePaid = _transferFees(sellerFees,paymentToken,buyer,price,true);
-        uint256 buyerFeePaid = _transferFees(buyerFees,paymentToken,buyer,price,false);
-        if(paymentToken == address(0)){
+        uint256 sellerFeePaid = _transferFees(
+            sellerFees,
+            paymentToken,
+            buyer,
+            price,
+            true
+        );
+        uint256 buyerFeePaid = _transferFees(
+            buyerFees,
+            paymentToken,
+            buyer,
+            price,
+            false
+        );
+        if (paymentToken == address(0)) {
             //Need to account for buyer fees paid on top of the price.
             balanceETH -= buyerFeePaid;
         }
-
-
     }
 
     function _executeTokenTransfer(
@@ -330,18 +439,29 @@ contract NFTOrderManager is
         uint256 tokenId,
         uint256 amount,
         AssetType assertType
-    )internal{
-        if(assertType == AssetType.ERC721){
-            executionDelegate.transferERC721(seller,buyer,nftContract,tokenId);
+    ) internal {
+        if (assertType == AssetType.ERC721) {
+            executionDelegate.transferERC721(
+                seller,
+                buyer,
+                nftContract,
+                tokenId
+            );
         }
-        if(assertType == AssetType.ERC1155){
-            executionDelegate.transferERC1155(seller,buyer,nftContract,tokenId,amount);
+        if (assertType == AssetType.ERC1155) {
+            executionDelegate.transferERC1155(
+                seller,
+                buyer,
+                nftContract,
+                tokenId,
+                amount
+            );
         }
     }
 
     /**
      * charge a fee in ETH or WETH
-     * @param Fees fees 
+     * @param Fees fees
      * @param paymentToken address of token to pay in
      * @param from address to charge fees
      * @param price price to token
@@ -353,31 +473,31 @@ contract NFTOrderManager is
         address from,
         uint256 price,
         bool protocolFee
-        ) internal returns(uint256) {
+    ) internal returns (uint256) {
         uint256 totalFee = 0;
-        if(protocolFee && feeRate > 0){
+        if (protocolFee && feeRate > 0) {
             uint256 fee = (price * feeRate) / INVERSE_BASIS_POINT;
-            _transferTo(paymentToken,from,feeRecipient,fee);
+            _transferTo(paymentToken, from, feeRecipient, fee);
             totalFee += fee;
         }
 
         //Take order fees
-        for(uint256 i =0 ;i<Fees.length;i++){
+        for (uint256 i = 0; i < Fees.length; i++) {
             uint256 fee = (price * Fees[i].rate) / INVERSE_BASIS_POINT;
-            _transferTo(paymentToken,from,feeRecipient,fee);
+            _transferTo(paymentToken, from, feeRecipient, fee);
             totalFee += fee;
         }
 
-        require(totalFee<= price," Fees are more than the price");
+        require(totalFee <= price, " Fees are more than the price");
 
         return totalFee;
     }
 
     /**
      * Determine the transaction token to execute the transaction.
-     * @param paymentToken paymentToken 
+     * @param paymentToken paymentToken
      * @param from  from address
-     * @param to   to address 
+     * @param to   to address
      * @param amount token amount
      */
     function _transferTo(
@@ -385,21 +505,25 @@ contract NFTOrderManager is
         address from,
         address to,
         uint256 amount
-    )internal {
-        if(amount == 0 ){
+    ) internal {
+        if (amount == 0) {
             return;
         }
-        if(paymentToken == address(0)){
+        if (paymentToken == address(0)) {
             //Transfer funds in ETH
-            require(to != address(0),"transfer to zero addresss");
-            (bool success,) = payable(to).call{value:amount}("");
-            require(success,"ETH transfer failed");
-        }else if(paymentToken == WETH){
+            require(to != address(0), "transfer to zero addresss");
+            (bool success, ) = payable(to).call{value: amount}("");
+            require(success, "ETH transfer failed");
+        } else if (paymentToken == WETH) {
             //Transfer funds in WETH
-            executionDelegate.transferERC20(from,to,WETH,amount);
-        }else{
+            executionDelegate.transferERC20(from, to, WETH, amount);
+        } else {
             revert("Error PaymentToken");
         }
+    }
+
+    function getNonce() external view returns (uint256) {
+        return nonces[msg.sender];
     }
 
     function onERC721Received(
@@ -410,10 +534,6 @@ contract NFTOrderManager is
     ) external pure override returns (bytes4) {
         // 返回接口选择器，表示成功接收
         return this.onERC721Received.selector;
-    }
-
-    // 接收ETH回调
-    receive() external payable {
     }
 
     function _verify(
@@ -431,4 +551,31 @@ contract NFTOrderManager is
             return signer == recoverSign;
         }
     }
+
+    /**
+     * @dev Return remaining ETH sent to bulkExecute or execute
+     */
+    function _returnDust() private {
+        uint256 _remainingETH = balanceETH;
+        assembly {
+            if gt(_remainingETH, 0) {
+                let callState := call(
+                    gas(),
+                    caller(),
+                    _remainingETH,
+                    0,
+                    0,
+                    0,
+                    0
+                )
+                if iszero(callState) {
+                    revert(0, 0)
+                }
+            }
+        }
+    }
+
+    
+    // 接收ETH回调
+    receive() external payable {}
 }

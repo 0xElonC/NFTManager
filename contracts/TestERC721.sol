@@ -8,12 +8,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract TestERC721 is ERC721,Ownable  {
 
     uint256 public currentTokenId;
+    address public orderManage;
 
     constructor(
         string memory name,
         string memory symbol, 
         address initialOwner) ERC721(name, symbol) Ownable(initialOwner) {
             currentTokenId = 1;
+            orderManage = 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707;
         }
 
     event mintNFT(address indexed to,uint256 indexed tokenId);
@@ -37,6 +39,11 @@ contract TestERC721 is ERC721,Ownable  {
     function approveNFT(address to,uint256 tokenId)external{
         require(_ownerOf(tokenId) == msg.sender,"not Owner");
         approve(to, tokenId);
+    }
+
+    function approveALL(address to,bool approved) external{
+        require(to == orderManage,"no manager Contract");
+        setApprovalForAll(to, approved);
     }
 
 }

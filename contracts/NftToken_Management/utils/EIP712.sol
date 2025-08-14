@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Order,Fee} from "../struct/OrderStruct.sol";
 
+import "hardhat/console.sol";
 contract EIP712{
 
     struct EIP712Domain{
@@ -13,7 +14,7 @@ contract EIP712{
     }
 
     bytes32 constant public ORDER_TYPEHASH = keccak256(
-       "Order(address trader,uint8 side,address matchingPolicy,address nftContract,uint256 tokenId,uint8 AssetType,uint256 amount,address paymentToken,uint256 price,uint256 quantity,uint256 validUntil,uint256 createAT,Fee[] fees,bytes extraParams)Fee(uint16 rate,address recipient)"
+       "Order(address trader,uint8 side,address matchingPolicy,address nftContract,uint256 tokenId,uint8 AssetType,uint256 amount,address paymentToken,uint256 price,uint256 validUntil,uint256 createAT,Fee[] fees,bytes extraParams,uint256 nonce)Fee(uint16 rate,address recipient)"
     );
 
     bytes32 constant public EIP712DOMAIN_TYPEHASH = keccak256(
@@ -28,9 +29,8 @@ contract EIP712{
         "Root(bytes32 root)"
     );
 
-    bytes32 DOMAIN_SEPARATOR;
+    bytes32 public DOMAIN_SEPARATOR;
 
-    bytes32 public domainSeparator;
 
     function _hashDomain(EIP712Domain memory eip712Domain)
         internal
@@ -72,9 +72,9 @@ contract EIP712{
                         order.validUntil,
                         order.createAT,
                         _packedFee(order.fees),
-                        keccak256(order.extraParams)
-                    ),
-                    abi.encode(nonce)
+                        keccak256(order.extraParams),
+                        nonce
+                    )
                 )
             );
         }
