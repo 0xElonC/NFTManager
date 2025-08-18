@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -16,6 +15,7 @@ import "./policyManage/interfaces/IMatchingPolicy.sol";
 import "./interfaces/IExecutionDelegate.sol";
 import "./utils/EIP712.sol";
 import "./utils/MerkleVerifier.sol";
+import "../pool/interfaces/IETHPool.sol";
 
 import {Order, AssetType, Input, Side, SignatureVersion, Fee, Execution} from "./struct/OrderStruct.sol";
 
@@ -26,7 +26,6 @@ contract NFTOrderManager is
     Ownable2StepUpgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
-    AccessControlUpgradeable,
     IERC721Receiver,
     EIP712
 {
@@ -42,6 +41,7 @@ contract NFTOrderManager is
     /* Constants */
     uint256 public constant INVERSE_BASIS_POINT = 10_000;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant POOL = 0x0000000000A39bb272e79075ade125fd351887Ac;
 
     /*Variables*/
     IPolicyManager public policyManager;
@@ -72,11 +72,6 @@ contract NFTOrderManager is
         bytes32 buyHash
     );
 
-    /*modifier*/
-    modifier onlyOperator() {
-        require(hasRole(OPERATOR_ROLE, msg.sender));
-        _;
-    }
 
     modifier internalCall() {
         require(isInternal, "Unsafe call");
@@ -101,10 +96,7 @@ contract NFTOrderManager is
         __Ownable2Step_init();
         __ReentrancyGuard_init();
         __Pausable_init();
-        __AccessControl_init();
 
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(OPERATOR_ROLE, msg.sender);
         policyManager = _policyManager;
         executionDelegate = _executionDelegate;
         isInternal = false; // 原来写在声明处的值
@@ -505,7 +497,7 @@ contract NFTOrderManager is
         address from,
         address to,
         uint256 amount
-    ) internal {
+    ) internal nonReentrant{
         if (amount == 0) {
             return;
         }
@@ -517,7 +509,11 @@ contract NFTOrderManager is
         } else if (paymentToken == WETH) {
             //Transfer funds in WETH
             executionDelegate.transferERC20(from, to, WETH, amount);
-        } else {
+        }else if(paymentToken == POOL){
+            bool success = IETHPool(POOL).transferFrom(from, to, amount);
+            require(success,"Pool transfer failed");
+        } 
+        else {
             revert("Error PaymentToken");
         }
     }

@@ -92,7 +92,7 @@ contract ExecutionDelegate is IExecutionDelegate, Ownable,ReentrancyGuard {
         address to,
         address token,
         uint256 tokenId
-    ) external approvedContract {
+    ) external approvedContract nonReentrant{
         require(revokedApproval[from] == false, "User has revoked approval");
         IERC721(token).safeTransferFrom(from, to, tokenId );
     }
