@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IExecutionDelegate} from "./interfaces/IExecutionDelegate.sol";
 
-import "hardhat/console.sol";
-
 
 contract ExecutionDelegate is IExecutionDelegate, Ownable,ReentrancyGuard {
     using Address for address;
@@ -92,7 +90,7 @@ contract ExecutionDelegate is IExecutionDelegate, Ownable,ReentrancyGuard {
         address to,
         address token,
         uint256 tokenId
-    ) external approvedContract nonReentrant{
+    ) external approvedContract{
         require(revokedApproval[from] == false, "User has revoked approval");
         IERC721(token).safeTransferFrom(from, to, tokenId );
     }
@@ -103,7 +101,7 @@ contract ExecutionDelegate is IExecutionDelegate, Ownable,ReentrancyGuard {
         address token,
         uint256 tokenId,
         uint256 amount
-    ) external approvedContract nonReentrant {
+    ) external approvedContract {
         require(revokedApproval[from] == false, "User has revoked approval");
         IERC1155(token).safeTransferFrom(from, to, tokenId, amount, "");
     }

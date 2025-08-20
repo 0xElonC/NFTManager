@@ -19,8 +19,6 @@ import "../pool/interfaces/IETHPool.sol";
 
 import {Order, AssetType, Input, Side, SignatureVersion, Fee, Execution} from "./struct/OrderStruct.sol";
 
-import "hardhat/console.sol";
-
 contract NFTOrderManager is
     Initializable,
     Ownable2StepUpgradeable,
@@ -140,7 +138,7 @@ contract NFTOrderManager is
             revert("No order to execute");
         }
         for (uint8 i = 0; i < executionsLength; i++) {
-            assembly {
+            assembly("memory-safe") {
                 let memPoint := mload(0x40)
 
                 let order_localtion := calldataload(
@@ -166,7 +164,7 @@ contract NFTOrderManager is
 
                 mstore(
                     memPoint,
-                    0xe04d94ae00000000000000000000000000000000000000000000000000000000
+                    0x42d9f81000000000000000000000000000000000000000000000000000000000
                 )
                 calldatacopy(add(0x04, memPoint), order_point, size)
                 let result := delegatecall(
@@ -190,7 +188,7 @@ contract NFTOrderManager is
     function _execute(
         Input calldata sell,
         Input calldata buy
-    ) public payable internalCall nonReentrant {
+    ) public payable internalCall  {
         require(sell.order.side == Side.Sell);
         bytes32 sellHash = _hashOrder(sell.order, nonces[sell.order.trader]);
         bytes32 buyHash = _hashOrder(buy.order, nonces[buy.order.trader]);
@@ -209,9 +207,9 @@ contract NFTOrderManager is
         );
         require(_validateSignatures(buy, buyHash), "Buy failed autonrization");
         (
-            uint256 price,
             uint256 tokenId,
             uint256 amount,
+            uint256 price,
             AssetType assetType
         ) = _canMatchOrders(sell.order, buy.order);
 
@@ -260,7 +258,7 @@ contract NFTOrderManager is
         return (/* Order must have a trader. */
         (order.trader != address(0)) &&
             (cancelOrFilled[orderhash] == false) &&
-            (order.createAT < block.timestamp) &&
+            (order.createAT <= block.timestamp) &&
             (order.validUntil > block.timestamp));
     }
 
@@ -397,7 +395,7 @@ contract NFTOrderManager is
         Fee[] calldata sellerFees,
         Fee[] calldata buyerFees,
         uint256 price
-    ) internal setupExecution {
+    ) internal internalCall {
         if (paymentToken == address(0)) {
             require(msg.sender == buyer, "cannot use ETH");
             require(balanceETH >= price, "Insufficient value");
@@ -422,6 +420,7 @@ contract NFTOrderManager is
             //Need to account for buyer fees paid on top of the price.
             balanceETH -= buyerFeePaid;
         }
+          _transferTo(paymentToken, buyer, seller, price - sellerFeePaid);
     }
 
     function _executeTokenTransfer(
@@ -497,7 +496,7 @@ contract NFTOrderManager is
         address from,
         address to,
         uint256 amount
-    ) internal nonReentrant{
+    ) internal {
         if (amount == 0) {
             return;
         }
@@ -520,6 +519,10 @@ contract NFTOrderManager is
 
     function getNonce() external view returns (uint256) {
         return nonces[msg.sender];
+    }
+
+    function getDOMAIN_SEPARATOR()  external view returns(bytes32){
+        return DOMAIN_SEPARATOR;
     }
 
     function onERC721Received(
@@ -553,7 +556,7 @@ contract NFTOrderManager is
      */
     function _returnDust() private {
         uint256 _remainingETH = balanceETH;
-        assembly {
+        assembly ("memory-safe") {
             if gt(_remainingETH, 0) {
                 let callState := call(
                     gas(),

@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {Order,Fee} from "../struct/OrderStruct.sol";
 
-import "hardhat/console.sol";
+
 contract EIP712{
 
     struct EIP712Domain{
@@ -53,7 +53,7 @@ contract EIP712{
      * @param nonce The unique nonce for the order.
      */
     function _hashOrder(Order calldata order,uint256 nonce)
-        internal
+        public
         pure
         returns(bytes32){
             return keccak256(
@@ -91,7 +91,7 @@ contract EIP712{
         }
 
     function _hashToSignRoot(bytes32 root)
-        internal
+        public
         view
         returns(bytes32 hash){
             return keccak256(abi.encodePacked(
