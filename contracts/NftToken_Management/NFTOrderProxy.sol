@@ -1,19 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-contract NFTOrderProxy is TransparentUpgradeableProxy{
+contract NFTOrderProxy is ERC1967Proxy{
     constructor (
         address logic,
         address admin,
         bytes memory data
-    ) TransparentUpgradeableProxy(logic,admin,data){}
+    ) ERC1967Proxy(logic,data){}
 }
 
-contract NFTOrderProxyAdmin is ProxyAdmin{
-    constructor (address initOwner) ProxyAdmin(initOwner){
-        require(initOwner!=address(0),"Invail Owner");
-    }
-}

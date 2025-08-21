@@ -28,7 +28,7 @@ library MerkleVerifier{
     function _hashPair(
         bytes32 a,
         bytes32 b
-    )private pure returns(bytes32){
+    )public pure returns(bytes32){
         return a < b ? _efficientHash(a,b):_efficientHash(b,a);
     }
     /**

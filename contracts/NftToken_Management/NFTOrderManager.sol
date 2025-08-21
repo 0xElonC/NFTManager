@@ -5,11 +5,13 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./interfaces/INFTOrderManager.sol";
 import "./policyManage/interfaces/IPolicyManager.sol";
 import "./policyManage/interfaces/IMatchingPolicy.sol";
 import "./interfaces/IExecutionDelegate.sol";
@@ -20,11 +22,13 @@ import "../pool/interfaces/IETHPool.sol";
 import {Order, AssetType, Input, Side, SignatureVersion, Fee, Execution} from "./struct/OrderStruct.sol";
 
 contract NFTOrderManager is
+    INFTOrderManager,
     Initializable,
     Ownable2StepUpgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
     IERC721Receiver,
+    UUPSUpgradeable,
     EIP712
 {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
@@ -39,7 +43,7 @@ contract NFTOrderManager is
     /* Constants */
     uint256 public constant INVERSE_BASIS_POINT = 10_000;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public constant POOL = 0x0000000000A39bb272e79075ade125fd351887Ac;
+    address public constant POOL = 0x101862DB513aC360aF6E0E954356b73F246E429a;
 
     /*Variables*/
     IPolicyManager public policyManager;
@@ -69,7 +73,12 @@ contract NFTOrderManager is
         Order buy,
         bytes32 buyHash
     );
+    event NewExecutionDelegate(IExecutionDelegate indexed executionDelegate);
+    event NewPolicyManager(IPolicyManager indexed policyManager);
 
+    constructor() {
+        _disableInitializers();
+    }
 
     modifier internalCall() {
         require(isInternal, "Unsafe call");
@@ -84,6 +93,20 @@ contract NFTOrderManager is
         balanceETH = 0;
         isInternal = false;
     }
+
+    function setExecutionDelegate(
+        IExecutionDelegate _executionDelegate
+    ) external onlyOwner {
+        require(
+            address(_executionDelegate) != address(0),
+            "Address cannot be zero"
+        );
+        executionDelegate = _executionDelegate;
+        emit NewExecutionDelegate(executionDelegate);
+    }
+
+    // required by the OZ UUPS module
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function initialize(
         address ownerAddress,
@@ -111,10 +134,9 @@ contract NFTOrderManager is
     }
 
     /**
-     * Executes a trade between a sell order and a buy order.
-     * @param sell The input struct containing the sell order details.
-     * @param buy The input struct containing the buy order details.
-     */
+     * 在卖单和买单之间执行一笔交易。
+     * @param sell 包含卖单详情的输入结构体。
+     * @param buy 包含买单详情的输入结构体。*/
     function execute(
         Input calldata sell,
         Input calldata buy
@@ -138,7 +160,7 @@ contract NFTOrderManager is
             revert("No order to execute");
         }
         for (uint8 i = 0; i < executionsLength; i++) {
-            assembly("memory-safe") {
+            assembly ("memory-safe") {
                 let memPoint := mload(0x40)
 
                 let order_localtion := calldataload(
@@ -181,14 +203,14 @@ contract NFTOrderManager is
     }
 
     /**
-     * Executes a trade between a sell order and a buy order.
-     * @param sell The input struct containing the sell order details.
-     * @param buy The input struct containing the buy order details.
+     * 执行一笔由卖出订单和买入订单组成的交易。
+     * @param sell 包含卖出订单详情的输入结构体。
+     * @param buy 包含买入订单详情的输入结构体
      */
     function _execute(
         Input calldata sell,
         Input calldata buy
-    ) public payable internalCall  {
+    ) public payable internalCall {
         require(sell.order.side == Side.Sell);
         bytes32 sellHash = _hashOrder(sell.order, nonces[sell.order.trader]);
         bytes32 buyHash = _hashOrder(buy.order, nonces[buy.order.trader]);
@@ -247,9 +269,9 @@ contract NFTOrderManager is
     }
 
     /**
-     * Checks the validity of order parameters.
-     * @param order The order struct containing order details.
-     * @param orderhash The hash of the order used for validation.
+     * 检查订单参数的有效性。
+     * @param order 包含订单详情的订单结构体
+     * @param orderhash  用于验证的订单哈希值
      */
     function _vaildataOrderParameters(
         Order calldata order,
@@ -263,9 +285,9 @@ contract NFTOrderManager is
     }
 
     /**
-     * Validates the signature for the given order input and hash.
-     * @param input The input struct containing order and signature details.
-     * @param orderHash The hash of the order used for signature validation.
+     *  验证给定订单输入及哈希值的签名。
+     * @param input 包含订单及签名详情的输入结构体。
+     * @param orderHash 用于验证签名的订单的哈希值。
      */
     function _validateSignatures(
         Input calldata input,
@@ -292,14 +314,14 @@ contract NFTOrderManager is
     }
 
     /**
-     * Validates user authorization for an order using the provided signature and signature version.
-     * @param orderHash The hash of the order to be authorized.
-     * @param trader The address of the trader who signed the order.
-     * @param v The recovery byte of the signature.
-     * @param r Half of the ECDSA signature pair.
-     * @param s Half of the ECDSA signature pair.
-     * @param signatureVersion The version of the signature (Single or Bulk).
-     * @param extraSignature Additional signature data for bulk authorization.
+     * 使用提供的签名和签名版本验证订单的用户授权。
+     * @param orderHash 要授权的订单的哈希值。
+     * @param trader 签署订单的交易者地址。
+     * @param v 签名的恢复字节。
+     * @param r ECDSA 签名对的一半。
+     * @param s ECDSA 签名对的一半。
+     * @param signatureVersion 签名的版本（单个或批量）。
+     * @param extraSignature 批量授权的附加签名数据。
      */
     function _validateUserAuthorization(
         bytes32 orderHash,
@@ -331,13 +353,9 @@ contract NFTOrderManager is
     }
 
     /**
-     * verity match
+     * 一致性匹配
      * @param sell sell
      * @param buy  buy
-     * @return tokenId
-     * @return amount
-     * @return price
-     * @return assetType
      */
     function _canMatchOrders(
         Order calldata sell,
@@ -380,13 +398,13 @@ contract NFTOrderManager is
     }
 
     /**
-     * Execution transaction GAS fee
-     * @param seller The address of the seller.
-     * @param buyer The address of the buyer.
-     * @param paymentToken The address of the payment token.
-     * @param sellerFees Array of fees to be paid by the seller.
-     * @param buyerFees Array of fees to be paid by the buyer.
-     * @param price The price of the transaction.
+     * * 执行交易的 GAS 费用
+     * @param seller 卖家的地址。
+     * @param buyer 买家地址
+     * @param paymentToken 支付代币地址
+     * @param sellerFees 由卖家支付的费用数组.
+     * @param buyerFees 由买家支付的费用数组.
+     * @param price 交易的价格
      */
     function _executeFundsTransfer(
         address seller,
@@ -420,7 +438,7 @@ contract NFTOrderManager is
             //Need to account for buyer fees paid on top of the price.
             balanceETH -= buyerFeePaid;
         }
-          _transferTo(paymentToken, buyer, seller, price - sellerFeePaid);
+        _transferTo(paymentToken, buyer, seller, price - sellerFeePaid);
     }
 
     function _executeTokenTransfer(
@@ -451,12 +469,12 @@ contract NFTOrderManager is
     }
 
     /**
-     * charge a fee in ETH or WETH
+     * 以以太币或 WETH 形式收取费用
      * @param Fees fees
-     * @param paymentToken address of token to pay in
-     * @param from address to charge fees
-     * @param price price to token
-     * @param protocolFee  total fees paid
+     * @param paymentToken 要支付的代币地址
+     * @param from  收取费用的地址
+     * @param price 代币价格
+     * @param protocolFee  总费用支付额
      */
     function _transferFees(
         Fee[] memory Fees,
@@ -485,11 +503,11 @@ contract NFTOrderManager is
     }
 
     /**
-     * Determine the transaction token to execute the transaction.
-     * @param paymentToken paymentToken
-     * @param from  from address
-     * @param to   to address
-     * @param amount token amount
+     * 调用executionDelegate 发起交易函数
+     * @param paymentToken 代币地址
+     * @param from  发起方
+     * @param to   接收方
+     * @param amount token数量
      */
     function _transferTo(
         address paymentToken,
@@ -508,11 +526,10 @@ contract NFTOrderManager is
         } else if (paymentToken == WETH) {
             //Transfer funds in WETH
             executionDelegate.transferERC20(from, to, WETH, amount);
-        }else if(paymentToken == POOL){
+        } else if (paymentToken == POOL) {
             bool success = IETHPool(POOL).transferFrom(from, to, amount);
-            require(success,"Pool transfer failed");
-        } 
-        else {
+            require(success, "Pool transfer failed");
+        } else {
             revert("Error PaymentToken");
         }
     }
@@ -521,7 +538,7 @@ contract NFTOrderManager is
         return nonces[msg.sender];
     }
 
-    function getDOMAIN_SEPARATOR()  external view returns(bytes32){
+    function getDOMAIN_SEPARATOR() external view returns (bytes32) {
         return DOMAIN_SEPARATOR;
     }
 
@@ -552,7 +569,7 @@ contract NFTOrderManager is
     }
 
     /**
-     * @dev Return remaining ETH sent to bulkExecute or execute
+     * @dev 将剩余的以太币返还给“批量执行”或“执行”操作。
      */
     function _returnDust() private {
         uint256 _remainingETH = balanceETH;
@@ -574,7 +591,17 @@ contract NFTOrderManager is
         }
     }
 
-    
+    function setPolicyManager(
+        IPolicyManager _policyManager
+    ) external onlyOwner {
+        require(
+            address(_policyManager) != address(0),
+            "Address cannot be zero"
+        );
+        policyManager = _policyManager;
+        emit NewPolicyManager(policyManager);
+    }
+
     // 接收ETH回调
     receive() external payable {}
 }
