@@ -15,7 +15,7 @@ import "./interfaces/INFTOrderManager.sol";
 import "./policyManage/interfaces/IPolicyManager.sol";
 import "./policyManage/interfaces/IMatchingPolicy.sol";
 import "./interfaces/IExecutionDelegate.sol";
-import "./utils/EIP712.sol";
+import "./utils/OrderEIP712.sol";
 import "./utils/MerkleVerifier.sol";
 import "../pool/interfaces/IETHPool.sol";
 
@@ -29,7 +29,7 @@ contract NFTOrderManager is
     PausableUpgradeable,
     IERC721Receiver,
     UUPSUpgradeable,
-    EIP712
+    OrderEIP712
 {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -73,6 +73,8 @@ contract NFTOrderManager is
         Order buy,
         bytes32 buyHash
     );
+    event OrderCancelled(bytes32 hash);
+    event NonceIncremented(address indexed trader, uint256 newNonce);
     event NewExecutionDelegate(IExecutionDelegate indexed executionDelegate);
     event NewPolicyManager(IPolicyManager indexed policyManager);
 
@@ -117,6 +119,7 @@ contract NFTOrderManager is
         __Ownable2Step_init();
         __ReentrancyGuard_init();
         __Pausable_init();
+        __UUPSUpgradeable_init();
 
         policyManager = _policyManager;
         executionDelegate = _executionDelegate;
@@ -534,6 +537,42 @@ contract NFTOrderManager is
         }
     }
 
+    /**
+     * @dev 取消订单，阻止其被匹配。此操作须由该订单的交易员发起。
+     * @param order Order to cancel
+     */
+    function cancelOrder(Order calldata order) public {
+        /* Assert sender is authorized to cancel order. */
+        require(msg.sender == order.trader, "Not sent by trader");
+
+        bytes32 hash = _hashOrder(order, nonces[order.trader]);
+
+        require(!cancelOrFilled[hash], "Order cancelled or filled");
+
+        /* Mark order as cancelled, preventing it from being matched. */
+        cancelOrFilled[hash] = true;
+        emit OrderCancelled(hash);
+    }
+
+    /**
+     * @dev Cancel multiple orders
+     * @param orders Orders to cancel
+     */
+    function cancelOrders(Order[] calldata orders) external {
+        for (uint8 i = 0; i < orders.length; i++) {
+            cancelOrder(orders[i]);
+        }
+    }
+        /**
+     * @dev Cancel all current orders for a user, preventing them from being matched. Must be called by the trader of the order
+     */
+    function incrementNonce() external {
+        nonces[msg.sender] += 1;
+        emit NonceIncremented(msg.sender, nonces[msg.sender]);
+    }
+
+
+
     function getNonce() external view returns (uint256) {
         return nonces[msg.sender];
     }
@@ -558,7 +597,7 @@ contract NFTOrderManager is
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) internal pure returns (bool) {
+    ) public pure returns (bool) {
         require(v == 27 || v == 28, "Invalid v parameter");
         address recoverSign = ecrecover(originHash, v, r, s);
         if (recoverSign == address(0)) {

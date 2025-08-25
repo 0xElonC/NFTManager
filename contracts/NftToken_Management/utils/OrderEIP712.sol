@@ -2,9 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {Order,Fee} from "../struct/OrderStruct.sol";
-
-
-contract EIP712{
+contract OrderEIP712 {
 
     struct EIP712Domain{
         string name;
@@ -80,7 +78,7 @@ contract EIP712{
         }
 
     function _hashToSign(bytes32 orderHash)
-        internal
+        public
         view
         returns(bytes32 hash){
             return keccak256(abi.encodePacked(
@@ -116,7 +114,7 @@ contract EIP712{
         }
 
     function _hashFee(Fee calldata fee)
-        internal
+        public
         pure
         returns(bytes32){
             return keccak256(

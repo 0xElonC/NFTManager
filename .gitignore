@@ -3,6 +3,7 @@ node_modules
 test
 tests
 scripts
+venv
 
 # Hardhat files
 /cache

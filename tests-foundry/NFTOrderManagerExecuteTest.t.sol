@@ -2,17 +2,18 @@
 pragma solidity ^0.8.28;
 
 import "forge-std/Test.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../contracts/NftToken_Management/NFTOrderManager.sol";
 import "../contracts/TestERC721.sol";
 import "../contracts/NftToken_Management/struct/OrderStruct.sol";
-import "../contracts/NftToken_Management/utils/EIP712.sol";
+import "../contracts/NftToken_Management/utils/OrderEIP712.sol";
 import "../contracts/NftToken_Management/ExecutionDelegate.sol";
 import "../contracts/NftToken_Management/policyManage/PolicyManager.sol";
 import "../contracts/NftToken_Management/policyManage/interfaces/IMatchingPolicy.sol";
 import "../contracts/NftToken_Management/policyManage/matchingPolices/StandardPolicyERC721.sol";
 
 // 测试合约
-contract NFTOrderManagerExecuteTest is Test, EIP712 {
+contract NFTOrderManagerExecuteTest is Test, OrderEIP712 {
     // 核心合约
     NFTOrderManager public nftOrderManager;
     ExecutionDelegate public executionDelegate;
@@ -33,40 +34,45 @@ contract NFTOrderManagerExecuteTest is Test, EIP712 {
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     function setUp() public {
-        // 初始化地址
-        seller = vm.addr(sellerPK);
-        buyer = vm.addr(buyerPK);
-        owner = address(this);
+    seller = vm.addr(sellerPK);
+    buyer  = vm.addr(buyerPK);
+    owner  = address(this);
 
-        // 部署依赖合约
-        executionDelegate = new ExecutionDelegate(owner);
-        standardPolicyERC721 = new StandardPolicyERC721();
+    executionDelegate = new ExecutionDelegate(owner);
+    standardPolicyERC721 = new StandardPolicyERC721();
 
-        // 初始化白名单（包含模拟策略合约）
-        address[] memory whitelist = new address[](1);
-        whitelist[0] = address(standardPolicyERC721);
-        policyManager = new PolicyManager(owner, whitelist);
+    address[] memory whitelist = new address[](1);
+    whitelist[0] = address(standardPolicyERC721);
+    policyManager = new PolicyManager(owner, whitelist);
 
-        // 部署并初始化 NFTOrderManager
-        nftOrderManager = new NFTOrderManager();
-        nftOrderManager.initialize(
-            owner,
-            IPolicyManager(address(policyManager)),
-            IExecutionDelegate(address(executionDelegate))
-        );
+    // ✅ 部署实现合约
+    NFTOrderManager impl = new NFTOrderManager();
 
-        // 部署测试 NFT 合约并铸造
-        nft = new TestERC721("TestNFT", "TNFT", seller);
-        vm.prank(seller);
-        nft.mint(seller); // 卖家铸造 NFT
+    // ✅ 构造初始化数据
+    bytes memory initData = abi.encodeCall(
+        NFTOrderManager.initialize,
+        (owner, IPolicyManager(address(policyManager)), IExecutionDelegate(address(executionDelegate)))
+    );
 
-        // 卖家授权  操作其 NFT
-        vm.prank(seller);
-        nft.approveALL(address(executionDelegate), true);
-        executionDelegate.approveContract(address(nftOrderManager));
-        // 给买家转 ETH（用于购买）
-        vm.deal(buyer, 2 ether);
-    }
+    // ✅ 用 ERC1967Proxy 包装，并在构造时初始化
+    ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+
+    // ✅ 把代理地址当作主合约来用
+    nftOrderManager = NFTOrderManager(payable(address(proxy)));
+
+    // 部署测试 NFT 并铸造
+    nft = new TestERC721("TestNFT", "TNFT", seller);
+    vm.prank(seller);
+    nft.mint(seller);
+
+    // 卖家授权给 ExecutionDelegate
+    vm.prank(seller);
+    nft.setApprovalForAll(address(executionDelegate), true);
+
+    executionDelegate.approveContract(address(nftOrderManager));
+
+    vm.deal(buyer, 2 ether);
+}
 
     // 辅助函数：创建卖单
     function _createSellOrder() internal view returns (Order memory) {

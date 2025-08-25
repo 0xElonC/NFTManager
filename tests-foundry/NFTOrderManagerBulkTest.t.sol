@@ -5,13 +5,13 @@ import "forge-std/Test.sol";
 import "../contracts/NftToken_Management/NFTOrderManager.sol";
 import "../contracts/TestERC721.sol";
 import "../contracts/NftToken_Management/struct/OrderStruct.sol";
-import "../contracts/NftToken_Management/utils/EIP712.sol";
+import "../contracts/NftToken_Management/utils/OrderEIP712.sol";
 import "../contracts/NftToken_Management/ExecutionDelegate.sol";
 import "../contracts/NftToken_Management/policyManage/PolicyManager.sol";
 import "../contracts/NftToken_Management/policyManage/interfaces/IMatchingPolicy.sol";
 import "../contracts/NftToken_Management/policyManage/matchingPolices/StandardPolicyERC721.sol";
 
-contract NFTOrderManagerBulkTest is Test, EIP712 {
+contract NFTOrderManagerBulkTest is Test, OrderEIP712 {
     // 核心合约
     NFTOrderManager public nftOrderManager;
     ExecutionDelegate public executionDelegate;
