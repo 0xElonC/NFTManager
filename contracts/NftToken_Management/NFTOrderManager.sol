@@ -44,14 +44,18 @@ contract NFTOrderManager is
     uint256 public constant INVERSE_BASIS_POINT = 10_000;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant POOL = 0x101862DB513aC360aF6E0E954356b73F246E429a;
+    uint256 private constant MAX_FEE_RATE = 250;
 
     /*Variables*/
     IPolicyManager public policyManager;
     IExecutionDelegate public executionDelegate;
 
     /* Governance Variables */
+        /* Governance Variables */
     uint256 public feeRate;
     address public feeRecipient;
+
+    address public governor;
 
     /*Event*/
     event OrderCreated(
@@ -77,6 +81,9 @@ contract NFTOrderManager is
     event NonceIncremented(address indexed trader, uint256 newNonce);
     event NewExecutionDelegate(IExecutionDelegate indexed executionDelegate);
     event NewPolicyManager(IPolicyManager indexed policyManager);
+    event NewGovernor(address governor);
+    event NewFeeRate(uint256 feeRate);
+    event NewFeeRecipient(address feeRecipient);
 
     constructor() {
         _disableInitializers();
@@ -105,6 +112,32 @@ contract NFTOrderManager is
         );
         executionDelegate = _executionDelegate;
         emit NewExecutionDelegate(executionDelegate);
+    }
+        function setPolicyManager(
+        IPolicyManager _policyManager
+    ) external onlyOwner {
+        require(
+            address(_policyManager) != address(0),
+            "Address cannot be zero"
+        );
+        policyManager = _policyManager;
+        emit NewPolicyManager(policyManager);
+    }
+    function setFeeRate(uint256 _feeRate)
+        external
+    {
+        require(msg.sender == governor, "Fee rate can only be set by governor");
+        require(_feeRate <= MAX_FEE_RATE, "Fee cannot be more than 2.5%");
+        feeRate = _feeRate;
+        emit NewFeeRate(feeRate);
+    }
+
+    function setFeeRecipient(address _feeRecipient)
+        external
+        onlyOwner
+    {
+        feeRecipient = _feeRecipient;
+        emit NewFeeRecipient(feeRecipient);
     }
 
     // required by the OZ UUPS module
@@ -473,34 +506,36 @@ contract NFTOrderManager is
 
     /**
      * 以以太币或 WETH 形式收取费用
-     * @param Fees fees
+     * @param fees fees
      * @param paymentToken 要支付的代币地址
      * @param from  收取费用的地址
      * @param price 代币价格
      * @param protocolFee  总费用支付额
      */
     function _transferFees(
-        Fee[] memory Fees,
+        Fee[] calldata fees,
         address paymentToken,
         address from,
         uint256 price,
         bool protocolFee
     ) internal returns (uint256) {
         uint256 totalFee = 0;
-        if (protocolFee && feeRate > 0) {
+
+        /* Take protocol fee if enabled. */
+        if (feeRate > 0 && protocolFee) {
             uint256 fee = (price * feeRate) / INVERSE_BASIS_POINT;
             _transferTo(paymentToken, from, feeRecipient, fee);
             totalFee += fee;
         }
 
-        //Take order fees
-        for (uint256 i = 0; i < Fees.length; i++) {
-            uint256 fee = (price * Fees[i].rate) / INVERSE_BASIS_POINT;
-            _transferTo(paymentToken, from, feeRecipient, fee);
+        /* Take order fees. */
+        for (uint8 i = 0; i < fees.length; i++) {
+            uint256 fee = (price * fees[i].rate) / INVERSE_BASIS_POINT;
+            _transferTo(paymentToken, from, fees[i].recipient, fee);
             totalFee += fee;
         }
 
-        require(totalFee <= price, " Fees are more than the price");
+        require(totalFee <= price, "Fees are more than the price");
 
         return totalFee;
     }
@@ -630,16 +665,6 @@ contract NFTOrderManager is
         }
     }
 
-    function setPolicyManager(
-        IPolicyManager _policyManager
-    ) external onlyOwner {
-        require(
-            address(_policyManager) != address(0),
-            "Address cannot be zero"
-        );
-        policyManager = _policyManager;
-        emit NewPolicyManager(policyManager);
-    }
 
     // 接收ETH回调
     receive() external payable {}
