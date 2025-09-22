@@ -11,7 +11,8 @@ interface INFTOrderManager {
     function initialize(
         address ownerAddress,
         IPolicyManager _policyManager,
-        IExecutionDelegate _executionDelegate
+        IExecutionDelegate _executionDelegate,
+        address pool
     ) external;
     function setExecutionDelegate(IExecutionDelegate _executionDelegate) external;
 

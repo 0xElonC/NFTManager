@@ -20,6 +20,7 @@ contract ETHPool is IETHPool,OwnableUpgradeable,UUPSUpgradeable{
     }
     function initialize(address ownerAddress) external initializer{
         __Ownable_init(ownerAddress);
+        __UUPSUpgradeable_init();
     }
 
     function _authorizeUpgrade(address)internal override onlyOwner{}
@@ -59,6 +60,10 @@ contract ETHPool is IETHPool,OwnableUpgradeable,UUPSUpgradeable{
         _balances[to] += amount;
 
         emit Transfer(from,to,amount);
+    }
+
+    function updateEXCHANGE(address _exchange) external onlyOwner(){
+        EXCHANGE = _exchange;
     }
 
     receive() external payable {

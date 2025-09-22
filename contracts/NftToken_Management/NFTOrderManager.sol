@@ -43,7 +43,7 @@ contract NFTOrderManager is
     /* Constants */
     uint256 public constant INVERSE_BASIS_POINT = 10_000;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public constant POOL = 0x101862DB513aC360aF6E0E954356b73F246E429a;
+    address public  POOL;
     uint256 private constant MAX_FEE_RATE = 250;
 
     /*Variables*/
@@ -146,7 +146,8 @@ contract NFTOrderManager is
     function initialize(
         address ownerAddress,
         IPolicyManager _policyManager,
-        IExecutionDelegate _executionDelegate
+        IExecutionDelegate _executionDelegate,
+        address _pool
     ) external initializer {
         __Ownable_init(ownerAddress);
         __Ownable2Step_init();
@@ -156,6 +157,7 @@ contract NFTOrderManager is
 
         policyManager = _policyManager;
         executionDelegate = _executionDelegate;
+        POOL = _pool;
         isInternal = false; // 原来写在声明处的值
         balanceETH = 0;
         DOMAIN_SEPARATOR = _hashDomain(
@@ -426,7 +428,7 @@ contract NFTOrderManager is
             );
             (canMatch, price, tokenId, amount, assetType) = IMatchingPolicy(
                 buy.matchingPolicy
-            ).canMatchMakerAsk(sell, buy);
+            ).canMatchMakerBid(buy, sell);
         }
 
         require(canMatch, "Orders cannot be matched");
